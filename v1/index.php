@@ -92,7 +92,7 @@
         
         $response = new Response();
         if ($status->success()) {
-            $response = getResponse($json, 201);
+            $response = getResponse(array($json), 201);
         } else {
             $errors = array();
             foreach ($status->getMessages() as $message) {
@@ -120,7 +120,7 @@
         
         $response = new Response(); 
         if ($status->success()) {
-            $response = getResponse($json, 200);
+            $response = getResponse(array($json), 200);
         } else {
             $errors = array();
             foreach ($status->getMessages() as $message) {
@@ -158,7 +158,7 @@
             }
         }
         $response = new Response();
-        $response = getResponse($linkIds, 200);
+        $response = getResponse(array($linkIds), 200);
         return $response;
     });
     
@@ -168,7 +168,7 @@
         
         $response = new Response();
         if ($status->success()) {
-            $response = getResponse($json, 200);
+            $response = getResponse(array(), 200);
         } else {
             $errors = array();
             foreach ($status->getMessages() as $message) {
@@ -187,7 +187,7 @@
         
         $response = new Response();
         if ($status->success() == true) {
-            $response = getResponse($json, 200);
+            $response = getResponse(array($json), 200);
         } else {
             $errors = array();
             foreach ($status->getMessages() as $message) {
@@ -242,7 +242,7 @@
                 VALUES ('$username', '$credentials')";
             $status = $app->modelsManager->executeQuery($phql);
             if ($status->success()) {
-                $response = getResponse($json, 200);
+                $response = getResponse(array($json), 200);
             } else {
                 $errors = array();
                 foreach ($status->getMessages() as $message) {
@@ -279,7 +279,7 @@
         $response = new Response();
         if($username == $users[0]->username 
                 && $credentials == $users[0]->credentials) {
-            $response = getResponse($json, 200);
+            $response = getResponse(array($json), 200);
         } else {
             $error = "Error";
             $response = getResponse($error, 409);
