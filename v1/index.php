@@ -5,6 +5,8 @@
     use Phalcon\Http\Response;
     use Phalcon\Di\FactoryDefault;
     use Phalcon\Db\Adapter\Pdo\Mysql as PdoMysql;
+    use Phalcon\Logger;
+    use Phalcon\Logger\Adapter\File as FileAdapter;
     
     $loader = new Loader();
     $loader->registerDirs(
@@ -32,9 +34,12 @@
     );
 
     $app = new Micro($di);
+
+    $logger = new FileAdapter("logs/test.log");
     
-    $app->get('/hello', function() use ($app) {
+    $app->get('/hello', function() use ($app, $logger) {
         $data = array('result' => 'Hello#_#World');
+        $logger->info('Hello');
         return getResponse($data, 200);
     });
 
@@ -252,19 +257,21 @@
             }
             
         } else {
-            $error = "User already exists";
-            $response = getResponse($error, 409);
+            $response = getResponse(array(), 409);
         }
         return $response;
     });
     
     
-    $app->post('/users/check', function () use ($app) {
-        
+    $app->post('/users/check', function () use ($app, $logger) {
+        $logger->info("Starts /USERS/CHECK");
         $json = $app->request->getJsonRawBody();
         
         $username = $json->username;
         $credentials = $json->credentials;
+
+        $logger->info("Username: " . $username);
+        $logger->info("Credentials: " . $credentials);
         
         $phql = "SELECT username, credentials FROM users 
             WHERE username = '$username'";
@@ -273,16 +280,20 @@
         foreach ($users as $user) {
             array_push($data, array(
                 'username' => $user->username,
-                'credentaials' => $user->credentials
+                'credentials' => $user->credentials
             ));
-        }
+            $logger->info("Pushed to array: " . $user->username . " | " . $user->credentials);
+        }        
+
         $response = new Response();
-        if($username == $users[0]->username 
-                && $credentials == $users[0]->credentials) {
+        if(!empty($data) && $data[0]['username'] == $username 
+            && $data[0]['credentials'] == $credentials) {
             $response = getResponse(array($json), 200);
+            $logger->info("Success!");
         } else {
             $error = "Error";
-            $response = getResponse($error, 409);
+            $response = getResponse(array(), 409);
+            $logger->info("Failed");
         }
         return $response;
     });
@@ -310,7 +321,6 @@
 
         $response = new Response();
         $status = $STATUSES[$status_code];
-        $response->setStatusCode($status_code, $status);
         $response->setJsonContent(
             array(
                 'status' => $status,
