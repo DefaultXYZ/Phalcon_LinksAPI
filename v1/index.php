@@ -20,8 +20,8 @@
         return new PdoMysql(
             array(
                 "host"      =>  "localhost",
-                "username"  =>  "root",
-                "password"  =>  "1",
+                "username"  =>  "username",
+                "password"  =>  "password",
                 "dbname"    =>  "db_links"
             )
         );
@@ -34,12 +34,9 @@
     );
 
     $app = new Micro($di);
-
-    $logger = new FileAdapter("logs/test.log");
     
-    $app->get('/hello', function() use ($app, $logger) {
+    $app->get('/hello', function() use ($app) {
         $data = array('result' => 'Hello#_#World');
-        $logger->info('Hello');
         return getResponse($data, 200);
     });
 
@@ -263,15 +260,11 @@
     });
     
     
-    $app->post('/users/check', function () use ($app, $logger) {
-        $logger->info("Starts /USERS/CHECK");
+    $app->post('/users/check', function () use ($app) {
         $json = $app->request->getJsonRawBody();
         
         $username = $json->username;
         $credentials = $json->credentials;
-
-        $logger->info("Username: " . $username);
-        $logger->info("Credentials: " . $credentials);
         
         $phql = "SELECT username, credentials FROM users 
             WHERE username = '$username'";
@@ -282,18 +275,15 @@
                 'username' => $user->username,
                 'credentials' => $user->credentials
             ));
-            $logger->info("Pushed to array: " . $user->username . " | " . $user->credentials);
         }        
 
         $response = new Response();
         if(!empty($data) && $data[0]['username'] == $username 
             && $data[0]['credentials'] == $credentials) {
-            $response = getResponse(array($json), 200);
-            $logger->info("Success!");
+            $currentUser = selectCurrentUserByName($app, $username);
+            $response = getResponse($currentUser, 200);
         } else {
-            $error = "Error";
             $response = getResponse(array(), 409);
-            $logger->info("Failed");
         }
         return $response;
     });
@@ -315,7 +305,90 @@
         }
         return $response;
     });
+
+    $app->put('/users/change/visibility', function () use ($app) {
+        $json = $app->request->getJsonRawBody();
+        $id = $json->id;
+        $visibility = $json->visibility;
+        $phql = "UPDATE 
+                    users 
+                SET 
+                    visibility = '$visibility' 
+                WHERE 
+                    id = '$id'";
+        $query = $app->modelsManager->executeQuery($phql);
+        
+        $response = new Response();
+        if ($query->success()) {
+            $response = getResponse(array($json), 200);
+        } else {
+            $response = getResponse($array(), 409);
+        }
+        
+        return $response;
+    });
+
+    $app->put('/users/change/password', function () use ($app) {
+        $json = $app->request->getJsonRawBody();
+        $id = $json->id;
+        $credentials = $json->credentials;
+        $phql = "UPDATE 
+                    users 
+                SET 
+                    credentials = '$credentials' 
+                WHERE 
+                    id = '$id'";
+        $query = $app->modelsManager->executeQuery($phql);
+        
+        $response = new Response();
+        if ($query->success()) {
+            $response = getResponse(array($json), 200);
+        } else {
+            $response = getResponse($array(), 409);
+        }
+        
+        return $response;
+    });
+
+    $app->put('/users/change/username', function () use ($app) {
+        $json = $app->request->getJsonRawBody();
+        $id = $json->id;
+        $username = $json->username;
+        $phql = "UPDATE 
+                    users 
+                SET 
+                    username = '$username' 
+                WHERE 
+                    id = '$id'";
+        $query = $app->modelsManager->executeQuery($phql);
+        
+        $response = new Response();
+        if ($query->success()) {
+                $response = getResponse(array($json), 200);
+            } else {
+                $response = getResponse($array(), 409);
+            }
+        
+        return $response;
+    });
     
+    function selectCurrentUserByName($app, $username) {
+        $phql = "SELECT
+                    id, username, visibility
+                FROM 
+                    users
+                WHERE 
+                    username = '$username'";
+        $currentUserQuery = $app->modelsManager->executeQuery($phql);
+        $currentUser = array();
+        array_push($currentUser, array(
+            'id' => $currentUserQuery[0]->id,
+            'username' => $currentUserQuery[0]->username,
+            'visibility' => $currentUserQuery[0]->visibility
+        ));
+        return $currentUser;
+    }
+
     function getResponse($data, $status_code) {
         global $STATUSES;
 
